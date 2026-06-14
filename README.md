@@ -7,5 +7,5 @@ A python tool that pulls real data from websites and analyzes it for security re
 <img width="1918" height="1017" alt="Screenshot 2026-06-14 120006" src="https://github.com/user-attachments/assets/09ee1b87-e962-48cb-9579-6436b05c6c3b" />
 <img width="1918" height="1012" alt="Screenshot 2026-06-14 120023" src="https://github.com/user-attachments/assets/e7306c2e-c51e-4766-a806-886d45f75648" />
 How it Works:
-How it works: The scraper sends a request to the target URL and parses the returned HTML to pull out links, forms, and email addresses. A separate security header analyzer checks the site's response headers against a list of recommended security headers and reports which ones are missing.
+The scraper sends a request to the target URL and parses the returned HTML to pull out links, forms, and email addresses. A separate security header analyzer checks the site's response headers against a list of recommended security headers and reports which ones are missing.
 Simply type or copy/paste url and when asked again, type done and watch the program scrape the website you are targeting.
