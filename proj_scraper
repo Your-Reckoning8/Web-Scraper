@@ -1,0 +1,207 @@
+import requests
+from bs4 import BeautifulSoup
+from datetime import datetime
+import re
+import time
+import os
+
+def scrape_website(url):
+    print(f"Fetching data from: {url}")
+
+    try:
+        start = time.time()
+        response = requests.get(url, timeout=10)
+        end = time.time()
+        response_time = round(end - start, 2)
+
+        if response.status_code == 200:
+            print(f"Successfully connected!")
+            print(f"Response time: {response_time} seconds")
+            soup = BeautifulSoup(response.text, "html.parser")
+            return soup, response, response_time
+        else:
+            print(f"Failed to connect. State code: {response.status_code}")
+            return None, None, None
+    except Exception as e:
+        print(f"Error connecting to {url}: {str(e)}")
+        return None, None, None
+
+def analyze_target(url, soup, response, response_time):
+
+    print("\n--- Gathering Intelligence ---")
+
+    # Page Title
+    title = soup.find("title")
+    if title:
+        print(f"Page Title: {title.text}")
+
+    # Links
+    links = soup.find_all("a")
+    print(f"Links Found: {len(links)}")
+
+    # Forms
+    forms = soup.find_all("form")
+    print(f"Forms Found: {len(forms)}")
+
+    # Emails
+    emails = re.findall(r"[a-zA-z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", soup.text)
+    print(f"Emails Found: {len(emails)}")
+
+    # Security Headers
+    security_headers = [
+        "Content-Security-Policy",
+        "X-Frame-Options",
+        "Strict-Transport-Security",
+        "X-Content-Type-Options",
+        "X-XSS-Protection"
+    ]
+
+    print("\n--- Security Header Analysis ---")
+    missing_headers = []
+    for header in security_headers:
+        if header in response.headers:
+            print(f"{header} - Present")
+        else:
+            print(f"{header} - MISSING!")
+            missing_headers.append(header)
+
+    # Generate Report
+    generate_report(url, links, forms, emails, security_headers, missing_headers, response, response_time)
+
+def generate_report(url, links, forms, emails, security_headers, missing_headers, response, response_time):
+
+    desktop = os.path.join(os.path.expanduser("~"), "OneDrive", "Desktop")
+    report_path = os.path.join(desktop, "Logs", f"security_report_{datetime.now().strftime('%Y%m%d_%H$M%S')}.txt")
+
+    with open(report_path, "w") as report:
+        report.write("=" * 60 + "\n")
+        report.write("  SECURITY ASSESSMENT REPORT\n")
+        report.write("=" * 60 + "\n")
+        report.write(f"Target: {url}\n")
+        report.write(f"Date: {datetime.now().strftime('%Y%m%d_%H$M%S')}\n")
+        report.write(f"Assessed by: Tyler\n")
+        report.write(f"Response Time {response_time} seconds\n")
+        report.write("=" * 60 + "\n")
+
+        report.write("\n\nEXECUTIVE SUMMARY\n")
+        report.write("-" * 60 + "\n")
+        report.write(f"Links Discovered: {len(links)}\n")
+        report.write(f"Forms Discovered: {len(forms)}\n")
+        report.write(f"Emails Discovered: {len(emails)}\n")
+        report.write(f"Missing Headers: {len(missing_headers)}\n")
+
+        report.write("\n\n FINDINGS\n")
+        report.write("-" * 60 + "\n")
+
+        finding_number = 1
+        for header in missing_headers:
+            report.write(f"\nFinding {finding_number}: Missing {header}\n")
+
+            if header == "X-Content-Type-Options":
+                report.write("Severity: Medium\n")
+                report.write("Risk: Vulnerable to MIME type sniffing attacks.\n")
+                report.write("An attacker could upload a malicious file disguised\n")
+                report.write("as an image that executes as JavaScript leading to\n")
+                report.write("XSS attacks and customer data theft.\n")
+                report.write("Fix: X-Content-Type-Operations: nosniff\n")
+
+            elif header == "X-XSS-Protection":
+                report.write("Severity: Medium\n")
+                report.write("Risk: Vulnerable to Cross Site Scripting (XSS)\n")
+                report.write("attacks. Attacker could inject malicious scripts to\n")
+                report.write("steal customer data, hijack sessions, or redirect\n")
+                report.write("customers to phishing pages.\n")
+                report.write("Fix: X-XSS-Protection: 1; mode=block\n")
+            
+            elif header == "Content-Security-Policy":
+                report.write("Severity: High\n")
+                report.write("Risk: Highly vulnerable to XSS and data injection.\n")
+                report.write("Fix: Implement a strict Content Security Policy.\n")
+
+            elif header == "X-Frame-Options":
+                report.write("Severity: Medium\n")
+                report.write("Risk: Vulnerable to Clickjacking attacks.\n")
+                report.write("Fix: X-Frame Options: DENY\n")
+            
+            elif header == "Strict-Transport-Security":
+                report.write("Severirty: High\n")
+                report.write("Risk: Does not enforce HTTPS. Vulnerable to\n")
+                report.write("man in the middle attacks.\n")
+                report.write("Fix: Strict-Transport-Security: max-age=31536000\n")
+
+            finding_number += 1
+
+        report.write("\n\nSECURITY HEADER SUMMARY\n")
+        report.write("-" * 60 + "\n")
+        for header in security_headers:
+            if header in response.headers:
+                report.write(f"{header} - PRESENT\n")
+            else:
+                report.write(f"{header} - MISSING\n")
+
+        report.write("\n\nDiscovered Links\n")
+        report.write("-" * 60 + "\n")
+        for link in links:
+            report.write(f"{link.get('href')}\n")
+
+        report.write("\n\nDiscovered Forms\n")
+        report.write("-" * 60 + "\n")
+        for form in forms:
+            report.write(f"{form}\n")
+
+        report.write("\n\nDiscovered Emails\n")
+        report.write("-" * 60 + "\n")
+        for email in emails:
+            report.write(f"{email}\n")
+
+        report.write("\n\nServer Headers\n")
+        report.write("-" * 60 + "\n")
+        for header, value in response.headers.items():
+            report.write(f"{header}: {value}\n")
+
+        report.write("\n\nDisclaimer\n")
+        report.write("-" * 60 + "\n")
+        report.write("This assessment was conducted passively using only\n")
+        report.write("publicly available information. No exploitation was\n")
+        report.write("attempted. This report is intended for responsible\n")
+        report.write("disclosure purposes only.\n")
+        report.write("=" * 60 + "\n")
+
+    print(f"\nReport was saved to: {report_path}")
+
+def main():
+    print("=" * 60)
+    print("       SECURITY ASSESMENT TOOL")
+    print("=" * 60)
+
+    urls = []
+    print("\nEnter URLs to scan (type 'done' when finished):")
+
+    while True:
+        url = input("Enter URL: ")
+        if url.lower() == "done":
+            break
+        if not url.startswith("http"):
+            url = "https://" + url
+        urls.append(url)
+
+        if not urls:
+            print("No URLs entered!")
+            return
+        
+    import sys
+    print(f"\n Scanning {len(urls)} target(s)", end=", flush=True")
+    for _ in range(3):
+        time.sleep(0.5)
+        print(".", end="", flush=True)
+        sys.stdout.flush()
+    print()
+
+    for url in urls:
+        soup, response, response_time = scrape_website(url)
+        if soup:
+            analyze_target(url, soup, response, response_time)
+        print("\n" + "=" * 60)
+
+if __name__ == "__main__":
+    main()
